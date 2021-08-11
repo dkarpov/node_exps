@@ -1,14 +1,54 @@
 const express = require("express");
-const app = express();
 const path = require("path");
+const redis = require("redis");
+const bcrypt = require("bcrypt");
+const session = require("express-session");
 
+const app = express();
+const RedisStore = require("connect-redis")(session);
+const client = redis.createClient();
+const saltRounds = 10;
+
+app.use(
+  session({
+    store: new RedisStore({ client: client }),
+    resave: true,
+    saveUninitialized: true,
+    cookie: {
+      maxAge: 36000000, //10 hours, in milliseconds
+      httpOnly: false,
+      secure: false,
+    },
+    secret: "bM80SARMxlq4fiWhulfNSeUFURWLTY8vyf",
+  })
+);
 app.use(express.urlencoded({ extended: true }));
-
-app.get("/", (req, res) => res.render("index"));
-app.listen(3000, () => console.log("Server is ready"));
 
 app.set("view engine", "pug");
 app.set("views", path.join(__dirname, "views"));
+
+app.get("/", (req, res) => {
+  if (req.session.userid) {
+    client.hget(
+      `user:${req.session.userid}`,
+      "username",
+      (err, currentUserName) => {
+        client.smembers(`following:${currentUserName}`, (err, following) => {
+          client.hkeys("users", (err, users) => {
+            res.render("dashboard", {
+              users: users.filter(
+                (user) =>
+                  user !== currentUserName && following.indexOf(user) === -1
+              ),
+            });
+          });
+        });
+      }
+    );
+  } else {
+    res.render("login");
+  }
+});
 
 app.post("/", (req, res) => {
   const { username, password } = req.body;
@@ -20,6 +60,98 @@ app.post("/", (req, res) => {
     return;
   }
 
+  const saveSessionAndRenderDashboard = (userid) => {
+    req.session.userid = userid;
+    req.session.save();
+    res.redirect("/");
+    // client.hkeys("users", (err, users) => {
+    //   res.render("dashboard", { users });
+    // });
+  };
+
+  const handleSignup = (username, password) => {
+    client.incr("userid", async (err, userid) => {
+      client.hset("users", username, userid);
+
+      const saltRounds = 10;
+      const hash = await bcrypt.hash(password, saltRounds);
+
+      client.hset(`user:${userid}`, "hash", hash, "username", username);
+
+      saveSessionAndRenderDashboard(userid);
+    });
+  };
+
+  const handleLogin = (userid, password) => {
+    client.hget(`user:${userid}`, "hash", async (err, hash) => {
+      const result = await bcrypt.compare(password, hash);
+      if (result) {
+        saveSessionAndRenderDashboard(userid);
+      } else {
+        res.render("error", {
+          message: "Incorrect password",
+        });
+        return;
+      }
+    });
+  };
+
+  client.hget("users", username, (err, userid) => {
+    if (!userid) {
+      //signup procedure
+      handleSignup(username, password);
+    } else {
+      //login procedure
+      handleLogin(userid, password);
+    }
+  });
+
   console.log(req.body, username, password);
-  res.end();
 });
+
+// post message
+app.get("/post", (req, res) => {
+  if (!req.session.userid) {
+    res.render("login");
+    return;
+  }
+
+  const { message } = req.body;
+
+  client.incr("postid", async (err, postid) => {
+    client.hmset(
+      `post:${postid}`,
+      "userid",
+      req.session.userid,
+      "message",
+      message,
+      "timestamp",
+      Date.now()
+    );
+
+    res.redirect("/");
+    // res.render("dashboard");
+  });
+});
+
+app.post("/follow", (req, res) => {
+  if (!req.session.userid) {
+    res.render("login");
+    return;
+  }
+
+  const { username } = req.body;
+
+  client.hget(
+    `user:${req.session.userid}`,
+    "username",
+    (err, currentUserName) => {
+      client.sadd(`following:${currentUserName}`, username);
+      client.sadd(`following:${username}`, currentUserName);
+    }
+  );
+
+  res.redirect("/");
+});
+
+app.listen(3000, () => console.log("Server is ready"));
