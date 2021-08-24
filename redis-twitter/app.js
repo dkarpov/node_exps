@@ -3,11 +3,18 @@ const path = require("path");
 const redis = require("redis");
 const bcrypt = require("bcrypt");
 const session = require("express-session");
+const { promisify } = require("util");
 
 const app = express();
 const RedisStore = require("connect-redis")(session);
 const client = redis.createClient();
 const saltRounds = 10;
+
+const ahget = promisify(client.hget).bind(client);
+const asmembers = promisify(client.smembers).bind(client);
+const ahkeys = promisify(client.hkeys).bind(client);
+const aincr = promisify(client.incr).bind(client);
+const alrange = promisify(client.lrange).bind(client);
 
 app.use(
   session({
@@ -27,9 +34,9 @@ app.use(express.urlencoded({ extended: true }));
 app.set("view engine", "pug");
 app.set("views", path.join(__dirname, "views"));
 
-app.get("/", (req, res) => {
+app.get("/", async (req, res) => {
   if (req.session.userid) {
-    client.hget(
+    /* client.hget(
       `user:${req.session.userid}`,
       "username",
       (err, currentUserName) => {
@@ -44,7 +51,19 @@ app.get("/", (req, res) => {
           });
         });
       }
+    ); */
+    const currentUserName = await ahget(
+      `user:${req.session.userid}`,
+      "username"
     );
+    const following = await asmembers(`following:${currentUserName}`);
+    const users = await ahkeys("users");
+
+    res.render("dashboard", {
+      users: users.filter(
+        (user) => user !== currentUserName && following.indexOf(user) === -1
+      ),
+    });
   } else {
     res.render("login");
   }
@@ -71,12 +90,13 @@ app.post("/", (req, res) => {
 
   const handleSignup = (username, password) => {
     client.incr("userid", async (err, userid) => {
-      client.hset("users", username, userid);
+      client.hmset("users", username, userid);
 
       const saltRounds = 10;
       const hash = await bcrypt.hash(password, saltRounds);
+      console.log("signup >>>", hash);
 
-      client.hset(`user:${userid}`, "hash", hash, "username", username);
+      client.hmset(`user:${userid}`, "hash", hash, "username", username);
 
       saveSessionAndRenderDashboard(userid);
     });
@@ -84,6 +104,7 @@ app.post("/", (req, res) => {
 
   const handleLogin = (userid, password) => {
     client.hget(`user:${userid}`, "hash", async (err, hash) => {
+      console.log("@@@", password, userid, hash, err);
       const result = await bcrypt.compare(password, hash);
       if (result) {
         saveSessionAndRenderDashboard(userid);
@@ -111,27 +132,41 @@ app.post("/", (req, res) => {
 
 // post message
 app.get("/post", (req, res) => {
+  if (req.session.userid) {
+    res.render("post");
+  } else {
+    res.render("login");
+  }
+});
+
+app.post("/post", async (req, res) => {
   if (!req.session.userid) {
     res.render("login");
     return;
   }
 
   const { message } = req.body;
+  const currentUserName = await ahget(`user:${req.session.userid}`, "username");
+  const postid = await aincr("postid");
+  client.hmset(
+    `post:${postid}`,
+    "userid",
+    req.session.userid,
+    "username",
+    currentUserName,
+    "message",
+    message,
+    "timestamp",
+    Date.now()
+  );
+  client.lpush(`timeline:${currentUserName}`, postid);
 
-  client.incr("postid", async (err, postid) => {
-    client.hmset(
-      `post:${postid}`,
-      "userid",
-      req.session.userid,
-      "message",
-      message,
-      "timestamp",
-      Date.now()
-    );
+  const followers = await asmembers(`followers:${currentUserName}`);
+  for (follower of followers) {
+    client.lpush(`timeline:${follower}`, postid);
+  }
 
-    res.redirect("/");
-    // res.render("dashboard");
-  });
+  res.redirect("/");
 });
 
 app.post("/follow", (req, res) => {
