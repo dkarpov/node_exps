@@ -107,5 +107,4 @@ app.post("/expense", (req, res) => {
 
 app.listen(3000, () => {
   console.log("@@@ file server.js line 11");
-  console.log("@@@ file server.js line 11");
 });
