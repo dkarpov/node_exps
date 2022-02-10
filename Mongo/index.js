@@ -10,7 +10,6 @@ const connect = async () => {
     });
     //select a database
     const db = client.db("dogs");
-
     const collection = db.collection("dogs");
 
     const result = await collection.insertOne({ name: "Roger" });

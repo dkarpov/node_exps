@@ -1,17 +1,34 @@
-const express = require('express');
-const schema = require('./schema');
+require("dotenv").config();
+const express = require("express");
+const mongoose = require("mongoose");
+const schema = require("./schema");
 
-const graphqlHTTP = require('express-graphql').graphqlHTTP;
+const graphqlHTTP = require("express-graphql").graphqlHTTP;
 
 const app = express();
+// create .env file with localhost setup as below:
+// MONGODB_URL="mongodb://localhost:27017"
 
-app.use('/graphql', graphqlHTTP({
+mongoose.connect(process.env.MONGODB_URL, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  dbName: "graphql-mongoose",
+});
+
+mongoose.connection.once("open", () => {
+  console.log("Connected to MongoDB");
+});
+
+app.use(
+  "/graphql",
+  graphqlHTTP({
     schema: schema,
-    graphiql: true
-}));
+    graphiql: true,
+  })
+);
 
 app.listen(3000, () => {
-    console.log("App listen on port 3000");
+  console.log("App listen on port 3000");
 });
 
 // in browser open http://localhost:3000/graphql

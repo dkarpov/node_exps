@@ -1,5 +1,9 @@
 const graphql = require("graphql");
 const _ = require("lodash");
+
+const Article = require("./models/article");
+const Contributor = require("./models/contributor");
+
 const {
   GraphQLSchema,
   GraphQLObjectType,
@@ -7,6 +11,7 @@ const {
   GraphQLInt,
   GraphQLList,
   GraphQLID,
+  GraphQLNonNull,
 } = graphql;
 
 let articles = [
@@ -52,11 +57,13 @@ const ArticleType = new GraphQLObjectType({
     name: { type: GraphQLString },
     topic: { type: GraphQLString },
     date: { type: GraphQLString },
-    contributorId: { type: GraphQLID },
+    contributorId: { type: GraphQLString },
     contributor: {
       type: ContributorType,
-      resolve(parent, args) {
-        return _.find(contributors, { id: parent.contributorId });
+      resolve: async function (parent, args) {
+        return await Contributor.findOne({
+          contributorId: parent.contributorId,
+        });
       },
     },
   }),
@@ -66,13 +73,14 @@ const ContributorType = new GraphQLObjectType({
   name: "Contributor",
   fields: () => ({
     id: { type: GraphQLID },
+    contributorId: { type: GraphQLString },
     name: { type: GraphQLString },
     url: { type: GraphQLString },
     major: { type: GraphQLString },
     articles: {
       type: new GraphQLList(ArticleType),
       resolve(parent, args) {
-        return _.filter(articles, { contributorId: parent.id });
+        return Article.find({ contributorId: parent.contributorId });
       },
     },
   }),
@@ -91,14 +99,79 @@ const RootQuery = new GraphQLObjectType({
       type: ArticleType,
       args: { id: { type: GraphQLID } },
       resolve(parent, args) {
-        return _.find(articles, { id: args.id });
+        return Article.findById(args.id);
+      },
+    },
+    articleByTopic: {
+      type: ArticleType,
+      args: { topic: { type: GraphQLString } },
+      resolve: async function (parent, args) {
+        return await Article.findOne({ topic: args.topic });
       },
     },
     contributor: {
       type: ContributorType,
       args: { id: { type: GraphQLID } },
       resolve(parent, args) {
-        return _.find(contributors, { id: args.id });
+        return Contributor.findById(args.id);
+      },
+    },
+    contributorByID: {
+      type: ContributorType,
+      args: { contributorId: { type: GraphQLString } },
+      resolve: async function (parent, args) {
+        return await Contributor.findOne({ contributorId: args.contributorId });
+      },
+    },
+  },
+});
+
+// use mutations to update database tables, example below
+// mutation {
+//   addArticle(name: "REST APIs - Introductory guide", topic: "API", date: "2020-06-26T00:00:00Z", contributorId: "1") {
+//     name
+//     topic
+//   }
+// }
+
+const Mutation = new GraphQLObjectType({
+  name: "Mutations",
+  fields: {
+    addArticle: {
+      type: ArticleType,
+      args: {
+        name: { type: new GraphQLNonNull(GraphQLString) },
+        topic: { type: new GraphQLNonNull(GraphQLString) },
+        date: { type: new GraphQLNonNull(GraphQLString) },
+        contributorId: { type: new GraphQLNonNull(GraphQLID) },
+      },
+      resolve(parent, args) {
+        let article = new Article({
+          name: args.name,
+          topic: args.topic,
+          date: args.date,
+          contributorId: args.contributorId,
+        });
+        return article.save();
+      },
+    },
+    addContributor: {
+      type: ContributorType,
+      args: {
+        name: { type: new GraphQLNonNull(GraphQLString) },
+        major: { type: GraphQLString },
+        url: { type: new GraphQLNonNull(GraphQLString) },
+        contributorId: { type: new GraphQLNonNull(GraphQLString) },
+      },
+      resolve(parent, args) {
+        let contributor = new Contributor({
+          name: args.name,
+          major: args.major,
+          url: args.url,
+          contributorId: args.contributorId,
+        });
+
+        return contributor.save();
       },
     },
   },
@@ -106,4 +179,5 @@ const RootQuery = new GraphQLObjectType({
 
 module.exports = new GraphQLSchema({
   query: RootQuery,
+  mutation: Mutation,
 });
