@@ -1,0 +1,3 @@
+[submodule "react-exp"]
+	path = react-exp
+	url = https://github.com/dkarpov/node_exps
