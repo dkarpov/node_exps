@@ -1,10 +1,16 @@
-import React from "react";
+import React, { useState } from "react";
+import axios from "axios";
 
-const Form = () => {
+const Form = (props) => {
+  const [username, setUsername] = useState("");
+
   const onSubmit = (evt) => {
-    evt.stopImmediatePropagation();
     evt.preventDefault();
-    console.log(evt);
+    axios.get(`https://api.github.com/users/${username}`).then((resp) => {
+      // console.log(resp.data);
+      props.onSubmit(resp.data);
+      setUsername("");
+    });
   };
 
   return (
@@ -12,6 +18,10 @@ const Form = () => {
       <div className="mt-10 flex">
         <input
           type="text"
+          value={username}
+          onChange={(evt) => {
+            setUsername(evt.target.value);
+          }}
           placeholder="GitHub username"
           className="form-input block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:shadow-outline-blue focus:border-blue-300 transition duration-150"
           required
