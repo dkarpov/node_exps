@@ -1,4 +1,8 @@
 /* overrides styles from global.css */
+.home {
+  background-color: grey;
+}
+
 .home h1 {
   color: #0070f3;
 }

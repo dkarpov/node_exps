@@ -12,7 +12,14 @@ const Index = () => (
         color: #fff000;
       }
     `}</style>
-    <h1>Home page</h1>
+    <Head>
+      <title>Header is here</title>{" "}
+      {/* issue was found with rendering title in head 
+      https://github.com/vercel/next.js/issues/4596 */}
+      <meta property="og:title" content="Main page title" key="title" />
+      <p>Header</p>
+    </Head>
+    <h1>Home page!</h1>
     <Link href="/blog">
       <a>Blog</a>
     </Link>
