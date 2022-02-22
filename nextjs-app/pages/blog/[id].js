@@ -1,8 +1,12 @@
 import { useRouter } from "next/router";
 import posts from "../../posts.json";
 
+// our page content depends on external data
 export async function getStaticProps(context) {
-  console.log("@@@ file [id].js line 5", context);
+  console.log("@@@ file [id].js line 5 getStaticProps", context);
+  // Call an external API endpoint to get posts
+  // const res = await fetch('https://.../posts')
+  // const posts = await res.json()
 
   return {
     props: {
@@ -10,12 +14,17 @@ export async function getStaticProps(context) {
     },
   };
 }
-
+// our page paths depends on external data
 export async function getStaticPaths(context) {
-  console.log("@@@ file [id].js line 15", context);
+  const resp = await fetch("http://localhost:3000/api/posts");
+  const postsData = await resp.json();
+
+  console.log("@@@ file [id].js line 18 getStaticPaths", context, postsData);
 
   return {
-    paths: [{ params: { id: "test" } }, { params: { id: "second" } }],
+    paths: Object.entries(postsData).map(([key, value]) => ({
+      params: { id: key },
+    })), //[{ params: { id: "test" } }, { params: { id: "second" } }],
     fallback: false,
   };
 }
