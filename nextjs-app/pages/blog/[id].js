@@ -16,21 +16,30 @@ export async function getStaticProps(context) {
 }
 // our page paths depends on external data
 export async function getStaticPaths(context) {
-  const resp = await fetch("http://localhost:3000/api/posts");
-  const postsData = await resp.json();
+  let postsData;
+  try {
+    const resp = await fetch("http://localhost:3000/api/posts");
+    postsData = await resp.json();
+  } catch (err) {
+    console.error(err);
+  }
 
   console.log("@@@ file [id].js line 18 getStaticPaths", context, postsData);
 
   return {
-    paths: Object.entries(postsData).map(([key, value]) => ({
-      params: { id: key },
-    })), //[{ params: { id: "test" } }, { params: { id: "second" } }],
+    paths: postsData
+      ? Object.entries(postsData).map(([key, value]) => ({
+          params: { id: key },
+        }))
+      : [{ params: { id: "test" } }, { params: { id: "second" } }],
     fallback: false,
   };
 }
 
-// Similar to getStaticProps, you export it from the page component file, and you return an object with a props object:
-// The context object in this case will contain, in addition to the params object received also in getStaticProps, we’ll also receive:
+// Similar to getStaticProps, you export it from the page component file,
+// and you return an object with a props object:
+// The context object in this case will contain,
+// in addition to the params object received also in getStaticProps, we’ll also receive:
 // query: the query string of the URL
 // req: the Node.js HTTP request object
 // res: the Node.js HTTP response object
