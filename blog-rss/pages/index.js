@@ -2,25 +2,55 @@ import Head from "next/head";
 import Image from "next/image";
 import styles from "../styles/Home.module.css";
 import Parser from "rss-parser";
+import Link from "next/link";
 
 export async function getStaticProps(context) {
   const parser = new Parser();
-  const data = await parser.parseURL(
-    "https://www1.cbn.com/rss-cbn-news-world.xml"
-  );
+
+  const Airtable = require("airtable");
+  // console.log("@@@ file index.js line 10", process.env.AIRTABLE_API_KEY);
+
+  Airtable.configure({
+    endpointUrl: "https://api.airtable.com",
+    apiKey: process.env.AIRTABLE_API_KEY,
+  });
+  var base = Airtable.base("app3f44W7NNsOKfdo");
+
+  const records = await base("RSS")
+    .select({
+      view: "Grid view",
+    })
+    .firstPage();
+
+  const feeds = records
+    .filter((record) => record.get("approved") === true)
+    .map((record) => ({
+      id: record.id,
+      name: record.get("name"),
+      blogurl: record.get("blogurl"),
+      feedurl: record.get("feedurl"),
+    }));
 
   const posts = [];
-  data.items.slice(0, 10).forEach(({ title, link, pubDate }) => {
-    posts.push({
-      title,
-      link,
-      pubDate,
-      name: "CBN",
+  for (const feed of feeds) {
+    const data = await parser.parseURL(feed.feedurl);
+
+    data.items.slice(0, 10).forEach((item) => {
+      posts.push({
+        title: item.title,
+        link: item.link,
+        date: item.pubDate,
+        name: feed.name,
+      });
     });
-  });
+  }
+
+  console.log("@@@ file index.js line 48", posts);
 
   return {
-    props: { posts },
+    props: {
+      posts,
+    },
   };
 }
 
@@ -44,6 +74,13 @@ export default function Home(props) {
               <h1 className="text-3xl font-bold leading-tight text-gray-900">
                 Latest posts
               </h1>
+              <p>
+                <Link href="/form">
+                  <p className="underline cursor-pointer mt-2">
+                    <a>Add a new blog</a>
+                  </p>
+                </Link>
+              </p>
             </div>
           </div>
         </header>
@@ -85,7 +122,7 @@ export default function Home(props) {
                                   </td>
                                   <td className="px-6 py-4 whitespace-no-wrap border-b border-gray-200">
                                     <div className="text-sm leading-5 text-gray-900">
-                                      {new Date(value.pubDate).toDateString()}
+                                      {new Date(value.date).toDateString()}
                                     </div>
                                     <div className="text-sm leading-5 text-gray-500"></div>
                                   </td>

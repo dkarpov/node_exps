@@ -1,6 +1,46 @@
 import Head from "next/head";
+import Link from "next/link";
+import { useState } from "react";
+import Router from "next/router";
+
+const initialState = {
+  name: "",
+  email: "",
+  blogurl: "",
+  feedurl: "",
+  notes: "",
+};
 /* eslint-disable react/jsx-key */
-const Form = () => {
+const Form = (props) => {
+  const [{ name, email, blogurl, feedurl, notes, response }, setState] =
+    useState("");
+
+  const updateState = (update) =>
+    setState((state) => ({ ...state, ...update }));
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    try {
+      const res = await fetch("/api/blog", {
+        method: "POST",
+        body: JSON.stringify({ name, email, blogurl, feedurl, notes }),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const json = await res.json();
+
+      if (json.success) {
+        alert("Thank you for submitting your blog!");
+        Router.push("/");
+      } else {
+        setResponse(json.message);
+      }
+    } catch (error) {
+      updateState({ response: "An error occured while submitting the form" });
+    }
+  };
+
   return (
     <div>
       <Head>
@@ -18,12 +58,19 @@ const Form = () => {
               <h1 className="text-3xl font-bold leading-tight text-gray-900">
                 Add new blog
               </h1>
+              <p>
+                <Link href="/">
+                  <p className="underline cursor-pointer mt-2">
+                    <a>Back</a>
+                  </p>
+                </Link>
+              </p>
             </div>
           </div>
         </header>
 
         <main>
-          <p className="text-center pb-5"></p>
+          <p className="text-center pb-5">{response}</p>
 
           <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div>
@@ -32,6 +79,7 @@ const Form = () => {
                   className="mt-5 md:mt-0 md:col-span-2"
                   action=""
                   method="POST"
+                  onSubmit={handleSubmit}
                 >
                   <div className="shadow sm:rounded-md sm:overflow-hidden">
                     <div className="px-4 py-5 bg-white sm:p-6">
@@ -40,6 +88,10 @@ const Form = () => {
                       </label>
                       <input
                         required
+                        value={name}
+                        onChange={(event) =>
+                          updateState({ name: event.target.value })
+                        }
                         className="mb-5 mt-1 form-input block w-full py-2 px-3 border border-gray-300 rounded shadow-sm focus:outline-none focus:shadow-outline-blue focus:border-blue-300 transition duration-150 ease-in-out sm:text-sm sm:leading-5"
                       />
                       <label className="block text-sm font-medium leading-5 text-gray-700">
@@ -48,6 +100,10 @@ const Form = () => {
                       <input
                         required
                         type="email"
+                        value={email}
+                        onChange={(event) =>
+                          updateState({ email: event.target.value })
+                        }
                         className="mb-5 mt-1 form-input block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:shadow-outline-blue focus:border-blue-300 transition duration-150 ease-in-out sm:text-sm sm:leading-5"
                       />
                       <label className="block text-sm font-medium leading-5 text-gray-700">
@@ -56,6 +112,10 @@ const Form = () => {
                       <input
                         type="url"
                         required
+                        value={blogurl}
+                        onChange={(event) =>
+                          updateState({ blogurl: event.target.value })
+                        }
                         className="mb-5 mt-1 form-input block w-full py-2 px-3 border border-gray-300 rounded shadow-sm focus:outline-none focus:shadow-outline-blue focus:border-blue-300 transition duration-150 ease-in-out sm:text-sm sm:leading-5"
                         placeholder="https://www.example.com"
                       />
@@ -65,6 +125,10 @@ const Form = () => {
                       <input
                         type="url"
                         required
+                        value={feedurl}
+                        onChange={(event) =>
+                          updateState({ feedurl: event.target.value })
+                        }
                         className="mb-5 mt-1 form-input block w-full py-2 px-3 border border-gray-300 rounded shadow-sm focus:outline-none focus:shadow-outline-blue focus:border-blue-300 transition duration-150 ease-in-out sm:text-sm sm:leading-5"
                         placeholder="https://www.example.com/feed"
                       />
@@ -77,6 +141,10 @@ const Form = () => {
                       </label>
                       <div className="rounded-md shadow-sm">
                         <textarea
+                          value={notes}
+                          onChange={(event) =>
+                            updateState({ notes: event.target.value })
+                          }
                           rows="3"
                           className="form-textarea mt-1 block w-full transition duration-150 ease-in-out sm:text-sm sm:leading-5"
                           placeholder="Anything you want to tell us!"
