@@ -1,3 +1,10 @@
+You can find DB table content here - [Airtable](https://airtable.com/shr08lnpmjUIhVSwG) 
+
+CSV file was attached as well [RSS-Grid view.csv](RSS-Grid%20view.csv.csv)
+
+In case you decide to create acoount, please use reference link
+https://airtable.com/invite/r/ducMFvZU
+
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
 ## Getting Started

@@ -1,0 +1,3 @@
+﻿name,email,blogurl,feedurl,notes,approved
+css-tricks,chris@css-tricks.com,https://css-tricks.com,https://css-tricks.com/feed/,,checked
+hacks.mozzila,hacks@mozzila.com,https://hacks.mozilla.org,https://hacks.mozilla.org/feed/,,checked
