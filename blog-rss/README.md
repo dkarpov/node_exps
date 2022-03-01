@@ -5,6 +5,15 @@ CSV file was attached as well [RSS-Grid view.csv](RSS-Grid%20view.csv.csv)
 In case you decide to create acoount, please use reference link
 https://airtable.com/invite/r/ducMFvZU
 
+## First set session variable to connect with the Airtable DB 
+
+`AIRTABLE_API_KEY=yourApiKey`
+
+OR
+
+`export AIRTABLE_API_KEY=yourApiey`
+## expression abowe does work for unix/linux/wsl terminals^^
+
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
 ## Getting Started
