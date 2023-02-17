@@ -4,7 +4,7 @@ import express from "express";
 import bodyParser from "body-parser";
 import jwt from "jsonwebtoken";
 import cors from "cors";
-import { expressjwt } from "express-jwt";
+import { auth } from "express-oauth2-jwt-bearer";
 
 const app = express();
 const PORT = process.env.PORT || 8888;
@@ -12,9 +12,10 @@ const users = [
   { id: 1, username: "admin", password: "admin" },
   { id: 2, username: "guest", password: "guest" },
 ];
-const jwtCheck = expressjwt({
-  secret: "supercryptokey",
-  algorithms: ["HS256"],
+const jwtCheck = auth({
+  audience: "egghead-express",
+  issuerBaseURL: "https://dev-epzu8qrgvnn1fkdx.eu.auth0.com/",
+  tokenSigningAlg: "RS256",
 });
 
 app.use(bodyParser.urlencoded({ extended: true }));

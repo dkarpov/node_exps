@@ -1,13 +1,17 @@
-/* To run this file on a server, we are using httpster.
-Run with vscode LiveServer extension
-OR
-install global httpster npm package and then
-Run `httpster index.html -p 5000` in your console to start the server. */
-
 const API_URL = "http://localhost:3000";
-const AUTH_URL = "http://localhost:3000";
 
 let ACCESS_TOKEN = undefined;
+/* To run this file on a server, we are using httpster. 
+Type `httpster index.html -p 5000` in your console to start the server. */
+
+let webAuth = new auth0.WebAuth({
+  domain: "dev-epzu8qrgvnn1fkdx.eu.auth0.com",
+  clientID: "K2VxmyEYB4oTmab6e92n7i3FcbTugPxs",
+  responseType: "token",
+  audience: "egghead-express",
+  scope: "",
+  redirectUri: window.location.href,
+});
 
 const headlineBtn = document.querySelector("#headline");
 const secretBtn = document.querySelector("#secret");
@@ -47,28 +51,28 @@ logoutBtn.addEventListener("click", (event) => {
 });
 
 loginBtn.addEventListener("click", (event) => {
-  fetch(`${AUTH_URL}/login`, {
-    method: "POST",
-    headers: {
-      "Content-type": "application/json",
-      accept: "application/json",
-    },
-    body: JSON.stringify(UIUpdate.getUsernamePassword()),
-  })
-    .then((resp) => {
-      UIUpdate.updateCat(resp.status);
-      if (resp.status == 200) {
-        return resp.json();
-      } else {
-        return resp.text();
-      }
-    })
-    .then((data) => {
-      if (data.access_token) {
-        ACCESS_TOKEN = data.access_token;
-        data = `Access Token: ${data.access_token}`;
-        UIUpdate.loggedIn();
-      }
-      UIUpdate.alertBox(data);
-    });
+  webAuth.authorize();
 });
+
+parseHash = () => {
+  // let hash = window.location.hash.substr(0,1) == "#" ? window.location.hash.substr(1) : window.location.hash;
+  // let queryParams = {};
+  // hash.split("&").map(param => {
+  //   param = param.split("=");
+  //   queryParams[param[0]] = param[1];
+  // });
+  // if (queryParams.access_token && queryParams.expires_in) {
+  //   ACCESS_TOKEN = queryParams.access_token;
+  //   UIUpdate.loggedIn();
+  // }
+  // window.location.hash = "";
+  webAuth.parseHash(function (err, authResult) {
+    if (authResult && authResult.accessToken) {
+      window.location.hash = "";
+      ACCESS_TOKEN = authResult.accessToken;
+      UIUpdate.loggedIn();
+    }
+  });
+};
+
+window.addEventListener("DOMContentLoaded", parseHash);
